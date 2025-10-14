@@ -176,181 +176,213 @@ class ProfileController {
     final reportData = modelNotifier.value;
     if (reportData.weeklyReportData.isEmpty) return;
 
-    final pdf = pw.Document();
-    final font = await PdfGoogleFonts.poppinsRegular();
-    final boldFont = await PdfGoogleFonts.poppinsBold();
+    try {
+      final pdf = pw.Document();
+      final font = await PdfGoogleFonts.poppinsRegular();
+      final boldFont = await PdfGoogleFonts.poppinsBold();
 
-    final startDate = reportData.weeklyReportData.first.date;
-    final endDate = reportData.weeklyReportData.last.date;
-    final reportDateRange =
-        '${DateFormat.yMMMd().format(startDate)} - ${DateFormat.yMMMd().format(endDate)}';
+      final startDate = reportData.weeklyReportData.first.date;
+      final endDate = reportData.weeklyReportData.last.date;
+      final reportDateRange =
+          '${DateFormat.yMMMd().format(startDate)} - ${DateFormat.yMMMd().format(endDate)}';
 
-    final logoImage = pw.MemoryImage(
-      (await rootBundle.load('assets/logo.png')).buffer.asUint8List(),
-    );
+      // Try to load logo, but continue if it fails
+      pw.MemoryImage? logoImage;
+      try {
+        logoImage = pw.MemoryImage(
+          (await rootBundle.load('assets/google.png')).buffer.asUint8List(),
+        );
+      } catch (e) {
+        debugPrint('Logo not found, continuing without it: $e');
+      }
 
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.SizedBox(width: 100, child: pw.Image(logoImage)),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'Weekly Health Report',
-                        style: pw.TextStyle(font: boldFont, fontSize: 24),
-                      ),
-                      pw.Text(
-                        reportDateRange,
-                        style: pw.TextStyle(font: font, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              pw.Divider(thickness: 2, height: 30),
-              pw.Text(
-                'Patient Details',
-                style: pw.TextStyle(font: boldFont, fontSize: 18),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'Name: ${reportData.patientName}',
-                    style: pw.TextStyle(font: font),
-                  ),
-                  pw.Text(
-                    'Email: ${reportData.patientEmail}',
-                    style: pw.TextStyle(font: font),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Latest Lab Results',
-                style: pw.TextStyle(font: boldFont, fontSize: 18),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey),
-                  borderRadius: pw.BorderRadius.circular(5),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildLabStat(
-                      'HbA1c',
-                      '${reportData.labReportData.hba1c} %',
-                      boldFont,
-                      font,
-                    ),
-                    _buildLabStat(
-                      'Avg. Blood Glucose',
-                      '${reportData.labReportData.avgBloodGlucose} mg/dL',
-                      boldFont,
-                      font,
+                    if (logoImage != null)
+                      pw.SizedBox(width: 100, child: pw.Image(logoImage))
+                    else
+                      pw.Container(
+                        width: 100,
+                        height: 50,
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.blue200,
+                          borderRadius: pw.BorderRadius.circular(8),
+                        ),
+                        child: pw.Center(
+                          child: pw.Text(
+                            'GlycoSync',
+                            style: pw.TextStyle(
+                              font: boldFont,
+                              fontSize: 16,
+                              color: PdfColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text(
+                          'Weekly Health Report',
+                          style: pw.TextStyle(font: boldFont, fontSize: 24),
+                        ),
+                        pw.Text(
+                          reportDateRange,
+                          style: pw.TextStyle(font: font, fontSize: 16),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Daily Activity Log',
-                style: pw.TextStyle(font: boldFont, fontSize: 18),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Table(
-                border: pw.TableBorder.all(),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(1.5),
-                  1: const pw.FlexColumnWidth(1),
-                  2: const pw.FlexColumnWidth(3),
-                },
-                children: [
-                  pw.TableRow(
+                pw.Divider(thickness: 2, height: 30),
+                pw.Text(
+                  'Patient Details',
+                  style: pw.TextStyle(font: boldFont, fontSize: 18),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Name: ${reportData.patientName}',
+                      style: pw.TextStyle(font: font),
+                    ),
+                    pw.Text(
+                      'Email: ${reportData.patientEmail}',
+                      style: pw.TextStyle(font: font),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Latest Lab Results',
+                  style: pw.TextStyle(font: boldFont, fontSize: 18),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey),
+                    borderRadius: pw.BorderRadius.circular(5),
+                  ),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                     children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          'Date',
-                          style: pw.TextStyle(font: boldFont),
-                        ),
+                      _buildLabStat(
+                        'HbA1c',
+                        '${reportData.labReportData.hba1c} %',
+                        boldFont,
+                        font,
                       ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          'Glucose Impact',
-                          style: pw.TextStyle(font: boldFont),
-                        ),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          'Completed Levels',
-                          style: pw.TextStyle(font: boldFont),
-                        ),
+                      _buildLabStat(
+                        'Avg. Blood Glucose',
+                        '${reportData.labReportData.avgBloodGlucose} mg/dL',
+                        boldFont,
+                        font,
                       ),
                     ],
                   ),
-                  ...reportData.weeklyReportData.map((day) {
-                    return pw.TableRow(
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Daily Activity Log',
+                  style: pw.TextStyle(font: boldFont, fontSize: 18),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Table(
+                  border: pw.TableBorder.all(),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(1.5),
+                    1: const pw.FlexColumnWidth(1),
+                    2: const pw.FlexColumnWidth(3),
+                  },
+                  children: [
+                    pw.TableRow(
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            DateFormat('EEE, MMM d').format(day.date),
-                            style: pw.TextStyle(font: font),
+                            'Date',
+                            style: pw.TextStyle(font: boldFont),
                           ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            '${day.netGlucoseImpact.toStringAsFixed(1)}',
-                            style: pw.TextStyle(font: font),
+                            'Glucose Impact',
+                            style: pw.TextStyle(font: boldFont),
                           ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            day.completedLevels.isEmpty
-                                ? 'No activity'
-                                : day.completedLevels.join(', '),
-                            style: pw.TextStyle(font: font),
+                            'Completed Levels',
+                            style: pw.TextStyle(font: boldFont),
                           ),
                         ),
                       ],
-                    );
-                  }).toList(),
-                ],
-              ),
-              pw.Spacer(),
-              pw.Divider(thickness: 1, height: 20),
-              pw.Center(
-                child: pw.Text(
-                  '*** This is an auto-generated report ***',
-                  style: pw.TextStyle(font: font, color: PdfColors.grey),
+                    ),
+                    ...reportData.weeklyReportData.map((day) {
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              DateFormat('EEE, MMM d').format(day.date),
+                              style: pw.TextStyle(font: font),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              '${day.netGlucoseImpact.toStringAsFixed(1)}',
+                              style: pw.TextStyle(font: font),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              day.completedLevels.isEmpty
+                                  ? 'No activity'
+                                  : day.completedLevels.join(', '),
+                              style: pw.TextStyle(font: font),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
                 ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+                pw.Spacer(),
+                pw.Divider(thickness: 1, height: 20),
+                pw.Center(
+                  child: pw.Text(
+                    '*** This is an auto-generated report ***',
+                    style: pw.TextStyle(font: font, color: PdfColors.grey),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+    } catch (e) {
+      debugPrint('Error generating PDF report: $e');
+      // You could also show a snackbar here if you have BuildContext
+      rethrow; // Re-throw to allow UI to handle the error
+    }
   }
 
   pw.Widget _buildLabStat(
